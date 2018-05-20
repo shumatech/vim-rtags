@@ -79,24 +79,47 @@ def parse_completion_result(data):
     logging.debug(result)
     completions = []
 
-    for c in result['completions']:
-      k = c['kind']
-      kind = ''
-      if k == 'FunctionDecl' or k == 'FunctionTemplate':
-        kind = 'f'
-      elif k == 'CXXMethod' or k == 'CXXConstructor':
-        kind = 'm'
-      elif k == 'VarDecl':
-        kind = 'v'
-      elif k == 'macro definition':
-        kind = 'd'
-      elif k == 'EnumDecl':
-        kind = 'e'
-      elif k == 'TypedefDecl' or k == 'StructDecl' or k == 'EnumConstantDecl':
-        kind = 't'
+    kinds = {
+                                  # Letter Sign   Split  Suffix
+        'VarDecl'               : [ 'V',   True,  True,  ''    ],
+        'ParmDecl'              : [ 'P',   True,  True,  ''    ],
+        'FieldDecl'             : [ 'f',   True,  True,  ''    ],
+        'FunctionDecl'          : [ 'F',   True,  False, '('   ],
+        'FunctionTemplate'      : [ 'F',   True,  False, '('   ],
+        'CXXMethod'             : [ 'M',   True,  False, '('   ],
+        'CXXConstructor'        : [ 'C',   True,  False, '('   ],
+        'CXXDestructor'         : [ 'D',   True,  False, '('   ],
+        'StructDecl'            : [ 'S',   False, False, ''    ],
+        'EnumConstantDecl'      : [ 'E',   True,  True,  ''    ],
+        'EnumDecl'              : [ 'E',   True,  True,  ''    ],
+        'Namespace'             : [ 'N',   False, False, ''    ],
+        'TypedefDecl'           : [ 'T',   False, False, ''    ],
+        'TypeAliasTemplateDecl' : [ 'T',   False, False, ''    ],
+        'UnionDecl'             : [ 'U',   False, False, ''    ],
+        'macro definition'      : [ 'd',   False, False, ''    ],
+        'ClassDecl'             : [ 'c',   False, False, ''    ],
+        'ClassTemplate'         : [ 'c',   True,  False, ''    ],
+        'NotImplemented'        : [ 'n',   False, False, ''    ],
+        'Unknown'               : [ 'u',   True,  False, ''    ],
+    }
 
-      match = {'menu': c['completion'], 'word': c['completion'], 'kind': kind}
-      completions.append(match)
+    for c in result['completions']:
+        if c['kind'] in kinds:
+            kind = kinds[c['kind']]
+        else:
+            kind = kinds['Unknown']
+
+        match = {}
+        match['abbr'] = "[" + kind[0] + "] " + c['completion']
+        if kind[1]:
+            if kind[2]:
+                match['kind'] = " ".join(c['signature'].split(" ")[:-1])
+            else:
+                match['kind'] = c['signature']
+        match['word'] = c['completion'] + kind[3]
+        match['menu'] = c['kind']
+
+        completions.append(match)
 
     return completions
 
